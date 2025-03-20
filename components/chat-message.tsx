@@ -34,11 +34,11 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         ) : (
           <ReactMarkdown
             components={{
-              a: ({ node, ...props }) => (
+              a: ({ ...props }) => (
                 <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" />
               ),
-              p: ({ node, ...props }) => <p {...props} className="mb-2" />,
-              strong: ({ node, ...props }) => <strong {...props} className="font-semibold" />,
+              p: ({ ...props }) => <p {...props} className="mb-2" />,
+              strong: ({ ...props }) => <strong {...props} className="font-semibold" />,
             }}
           >
             {message.content}

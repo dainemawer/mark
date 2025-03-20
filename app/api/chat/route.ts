@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     // Create a context from the bookmarks for the AI to reference
     const bookmarksContext = bookmarks
-      .map((bookmark: any) => {
+      .map((bookmark: { title: string; url: string; description?: string; tags: string[]; createdAt: string }) => {
         return `
 Title: ${bookmark.title}
 URL: ${bookmark.url}
