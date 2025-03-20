@@ -1,24 +1,55 @@
 import { openai } from "@ai-sdk/openai"
 import { streamText } from "ai"
 import { NextResponse } from "next/server"
-import { errorHandler } from '@/lib/utils'
-
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
 export async function POST(req: Request) {
   try {
-    const { messages, bookmarks } = await req.json()
+    const { messages } = await req.json()
+
+    // Create a Supabase server client
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      },
+    )
+
+    // Get the current user
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Fetch the user's bookmarks
+    const { data: bookmarks, error } = await supabase
+      .from("bookmarks")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching bookmarks:", error)
+      return NextResponse.json({ error: "Failed to fetch bookmarks" }, { status: 500 })
+    }
 
     // Create a context from the bookmarks for the AI to reference
     const bookmarksContext = bookmarks
-      .map((bookmark: { title: string; url: string; description?: string; tags: string[]; createdAt: string }) => {
+      .map((bookmark: { title: string; url: string; description?: string; tags?: string[]; created_at: string }) => {
         return `
 Title: ${bookmark.title}
 URL: ${bookmark.url}
 Description: ${bookmark.description || "No description"}
-Tags: ${bookmark.tags.join(", ") || "No tags"}
-Added: ${bookmark.createdAt}
+Tags: ${bookmark.tags?.join(", ") || "No tags"}
+Added: ${bookmark.created_at}
       `
       })
       .join("\n---\n")
@@ -39,22 +70,15 @@ When responding:
 5. If the user asks something unrelated to bookmarks, gently redirect them to bookmark-related queries.
 `
 
-  try {
     // Use streamText to enable streaming responses
-    const result = await streamText({
+    const result = streamText({
       model: openai("gpt-4o"),
       system: systemPrompt,
-      messages,
-    });
+      messages: messages.filter((m: { role: string }) => m.role !== "system"),
+    })
 
     // Return the response as a stream
-    return result.toDataStreamResponse({
-      getErrorMessage: errorHandler,
-    });
-  } catch (aiError) {
-    console.error("Error with OpenAI API:", aiError);
-    return NextResponse.json({ error: "Failed to generate AI response" }, { status: 500 });
-  }
+    return result.toDataStreamResponse()
   } catch (error) {
     console.error("Error in chat route:", error)
     return NextResponse.json({ error: "Failed to process your request" }, { status: 500 })

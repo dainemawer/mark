@@ -3,6 +3,7 @@ import BookmarkForm from "@/components/bookmark-form"
 import BookmarkList from "@/components/bookmark-list"
 import ChatUI from "@/components/chat-ui"
 import { ModeToggle } from "@/components/mode-toggle"
+import { UserNav } from "@/components/user-nav"
 
 export default function Home() {
   return (
@@ -11,7 +12,10 @@ export default function Home() {
         <h1 className="text-3xl font-bold">
           <span className="text-primary">Mark</span> - AI Bookmark Manager
         </h1>
-        <ModeToggle />
+        <div className="flex items-center gap-4">
+          <ModeToggle />
+          <UserNav />
+        </div>
       </div>
 
       <Tabs defaultValue="bookmarks" className="w-full">

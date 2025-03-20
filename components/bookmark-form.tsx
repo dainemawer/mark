@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBookmarks } from "@/hooks/use-bookmarks"
+import { Loader2 } from "lucide-react"
 
 export default function BookmarkForm() {
   const { addBookmark } = useBookmarks()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     url: "",
     title: "",
@@ -25,7 +27,7 @@ export default function BookmarkForm() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.url) {
@@ -35,32 +37,34 @@ export default function BookmarkForm() {
       return
     }
 
-    // Create tags array from comma-separated string
-    const tags = formData.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag !== "")
+    setIsSubmitting(true)
 
-    addBookmark({
-      id: Date.now().toString(),
-      url: formData.url,
-      title: formData.title || formData.url,
-      description: formData.description,
-      tags,
-      createdAt: new Date().toISOString(),
-    })
+    try {
+      // Create tags array from comma-separated string
+      const tags = formData.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag !== "")
 
-    toast('Bookmark added', {
-      description: "Your bookmark has been saved successfully",
-    })
+      await addBookmark({
+        url: formData.url,
+        title: formData.title || formData.url,
+        description: formData.description,
+        tags,
+      })
 
-    // Reset form
-    setFormData({
-      url: "",
-      title: "",
-      description: "",
-      tags: "",
-    })
+      // Reset form
+      setFormData({
+        url: "",
+        title: "",
+        description: "",
+        tags: "",
+      })
+    } catch (error) {
+      console.error("Error submitting bookmark:", error)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -82,12 +86,20 @@ export default function BookmarkForm() {
               value={formData.url}
               onChange={handleChange}
               required
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="title">Title (optional)</Label>
-            <Input id="title" name="title" placeholder="Website title" value={formData.title} onChange={handleChange} />
+            <Input
+              id="title"
+              name="title"
+              placeholder="Website title"
+              value={formData.title}
+              onChange={handleChange}
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="space-y-2">
@@ -99,6 +111,7 @@ export default function BookmarkForm() {
               value={formData.description}
               onChange={handleChange}
               rows={3}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -110,11 +123,19 @@ export default function BookmarkForm() {
               placeholder="css, webdev, tutorial"
               value={formData.tags}
               onChange={handleChange}
+              disabled={isSubmitting}
             />
           </div>
 
-          <Button type="submit" className="w-full">
-            Save Bookmark
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Bookmark"
+            )}
           </Button>
         </form>
       </CardContent>

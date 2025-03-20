@@ -7,6 +7,8 @@ import type { Bookmark } from "@/types/bookmark"
 import { ExternalLink, Trash2 } from "lucide-react"
 import { useBookmarks } from "@/hooks/use-bookmarks"
 import { formatDistanceToNow } from "@/lib/utils"
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
 
 interface BookmarkCardProps {
   bookmark: Bookmark
@@ -14,6 +16,18 @@ interface BookmarkCardProps {
 
 export default function BookmarkCard({ bookmark }: BookmarkCardProps) {
   const { removeBookmark } = useBookmarks()
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await removeBookmark(bookmark.id)
+    } catch (error) {
+      console.error("Error deleting bookmark:", error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -24,10 +38,11 @@ export default function BookmarkCard({ bookmark }: BookmarkCardProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => removeBookmark(bookmark.id)}
+              onClick={handleDelete}
+              disabled={isDeleting}
               className="h-8 w-8 text-muted-foreground hover:text-destructive"
             >
-              <Trash2 className="h-4 w-4" />
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               <span className="sr-only">Delete</span>
             </Button>
           </div>
