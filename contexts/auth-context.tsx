@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     if (!error) {
-      router.push("/")
+      router.push("/dashboard")
       router.refresh()
     }
 
